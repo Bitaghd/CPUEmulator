@@ -1,0 +1,21 @@
+﻿.data
+num 7
+num 1
+num 2
+num 3
+num 4
+num 5
+num 6
+num 7
+.text
+LOAD R2, [R0]
+LOAD R4, #1
+LOOP
+LOAD R3, [R4]
+ADD R1, R1, R3 
+INC R4
+SUB R2, R2, #1  
+JUMPZ LOOP         
+JUMP END
+END:
+HALT
