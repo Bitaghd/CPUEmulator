@@ -20,11 +20,13 @@
         }
         public void LoadProgram(List<string> program)
         {
+            Assembler.LoadLabels(program);
             for (int i = 0; i < program.Count; i++)
             {
-                var instruction = Assembler.Assemble(program[i]);
+                var instruction = Assembler.Assemble(program[i], i);
                 cmem[i] = instruction;
             }
+
         }
 
         public void Run()
@@ -35,8 +37,14 @@
                 Execute(cmem[pc]);
             }
         }
+
         private void Execute(int cmd)
         {
+            if(cmd == 0) // В памяти команд лейблы записываются нулевыми инструкциями
+            {
+                pc++;
+                return;
+            }
             int cmdtype = (cmd >> 28) & 0xF;
             int literal = (cmd >> 12) & 0xFFFF;
             int dest = (cmd >> 8) & 0xF;

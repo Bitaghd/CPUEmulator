@@ -1,15 +1,38 @@
-﻿
-namespace CPUEmulator
+﻿namespace CPUEmulator
 {
     class Assembler
     {
         private static List<string> instructions = new List<string>();
-        private static List<int> labels = new List<int>();
+        private static Dictionary<string, int> labels = new Dictionary<string, int>();
         public static string GetCurrentInstruction(int index)
         {
             return instructions[index];
         }
 
+        public static string GetLabelName(int value)
+        {
+            return labels.FirstOrDefault(x => x.Value == value).Key;
+        }
+        
+        public static void LoadLabels(List<string> program)
+        {
+
+            for(int i = 0; i < program.Count; i++)
+            {
+                if (program[i].EndsWith(":"))
+                {
+                    var label = program[i].Trim(':');
+                    labels.Add(label, i + 1);
+                }
+            }
+        }
+
+        private static int GetLabelIndex(string key)
+        {
+            if (labels.ContainsKey(key))
+                return labels[key];
+            return -1;
+        }
         public static int GetInstructionSet(string instruction)
         {
             switch (instruction)
@@ -27,54 +50,32 @@ namespace CPUEmulator
             }
         }
 
-        public static string GetInstructionSet(int instruction)
-        {
-            switch (instruction)
-            {
-                case 0x1: return "LOAD";
-                case 0x2: return "ADD";
-                case 0x3: return "SUB";
-                case 0x4: return "JUMP";
-                case 0x5: return "STORE";
-                case 0x6: return "JUMPZ";
-                case 0x7: return "HALT";
-                case 0x8: return "INC";
-                case 0x9: return "LOOP";
-                default: return null;
-            }
-        }
-
-        public static string Dissasemble(int cmd)
-        {
-            var result = GetInstructionSet(cmd);
-            return result;
-        }
-
-        public static int Assemble(string cmd)
+        public static int Assemble(string cmd, int index)
         {
             instructions.Add(cmd);
             string[] parts = cmd.Split(new[] { ' ', ','}, StringSplitOptions.RemoveEmptyEntries);
+
+            // Пропускаем, если встречаем лейбл, возвращаем значение 0 в качестве инструкции
+            if (parts.Length == 1 && parts[0].EndsWith(":"))
+            {
+                return 0;
+            }
+
             if (parts.Length == 0 || GetInstructionSet(parts[0]) == -1)
             {
                 throw new Exception($"Unknown command: {cmd}!");
             }
 
-            // Обработать лейблы LOOP и END
-            // НЕ В КАЧЕСТВЕ ИНСТРУКЦИЙ
-            //if (parts.Length == 1 && parts[0].EndsWith(":"))
-            //{
-                
-            //}
             int cmdtype = GetInstructionSet(parts[0]);
-            Console.WriteLine(cmdtype);
 
             int literal = 0, dest = 0, op1 = 0, op2 = 0;
             if (parts.Length > 1)
             {
-                if (parts[1].StartsWith("[") || parts[1].StartsWith("#"))
+                if (parts[1].StartsWith("[") || parts[1].StartsWith("#") || GetLabelIndex(parts[1]) != -1)
                     literal = ParseOperand(parts[1]);
                 else
                     dest = ParseOperand(parts[1]);
+
             }
             if (parts.Length > 2)
             {
@@ -130,6 +131,11 @@ namespace CPUEmulator
             {
                 // Регистр
                 return int.Parse(operand.Substring(1)); // Убираем символ 'R' и парсим индекс
+            }
+            else if (GetLabelIndex(operand) != -1) //Обрабатываем лейблы в инструкциях 
+            {
+                var label = GetLabelIndex(operand);
+                return label;
             }
             else
             {
